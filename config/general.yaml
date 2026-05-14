@@ -1,0 +1,10 @@
+seed: 42
+data_path : "data/CarParts"
+classes_path : "data/CarParts/classes.csv"
+images_path : "data/CarParts/images"
+masks_path : "data/CarParts/masks"
+labels_path : "data/CarParts/labels"
+yaml_filename : "car_parts.yaml"
+cache_file : "carparts_dataset.csv"
+model_path : "models"
+best_model_path : "previous_best_run"
