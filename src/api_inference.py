@@ -3,12 +3,12 @@ import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import argparse
 import cv2
 import uvicorn
 from fastapi import FastAPI, File, Request, UploadFile
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -87,6 +87,12 @@ app.mount(
     name="static"
 )
 
+app.mount(
+    "/outputs",
+    StaticFiles(directory=str(TEMP_FOLDER)),
+    name="outputs"
+)
+
 class Detection(BaseModel):
     class_name: str
     confidence: float
@@ -96,6 +102,7 @@ class PredictionResponse(BaseModel):
     filename: str
     detections: list[Detection]
     message: str
+    fileout: str
 
 
 def save_uploaded_file(file: UploadFile) -> Path:
@@ -155,36 +162,21 @@ async def predict(file: UploadFile = File(...)) -> PredictionResponse:
         results = run_prediction(app, input_path)
         detections = build_detection_response(app, results)
         logger.info(f"Prediction completed. Detections: {len(detections)}")
+        plotted = results[0].plot()
+        output_path = TEMP_FOLDER / f"pred_{file.filename}"
+        cv2.imwrite(str(output_path), plotted)
+        logger.info(f"Prediction image saved at: {output_path}")
 
         return PredictionResponse(
             filename=str(file.filename),
             detections=detections,
             message="Prediction completed successfully",
+            fileout=f"/outputs/{quote(output_path.name)}"
         )
 
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
         raise
-
-@app.post("/predict-image")
-async def predict_image(file: UploadFile = File(...)) -> FileResponse:
-
-    logger.info(f"Received file for image prediction: {file.filename}")
-
-    try:
-        input_path = save_uploaded_file(file)
-        results = run_prediction(app, input_path)
-        plotted = results[0].plot()
-        output_path = TEMP_FOLDER / f"pred_{file.filename}"
-        cv2.imwrite(str(output_path), plotted)
-        logger.info(f"Prediction image saved at: {output_path}")
-        return FileResponse(output_path)
-
-    except Exception as e:
-        logger.error(f"Image prediction failed: {e}")
-        raise
-
-
 
 
 if __name__ == "__main__":
