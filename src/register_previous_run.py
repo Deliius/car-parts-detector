@@ -13,8 +13,6 @@ from src.tracking import (
     log_training_images,
 )
 
-
-
 setup_logger("DEBUG")
 logger = logging.getLogger(__name__)
 
