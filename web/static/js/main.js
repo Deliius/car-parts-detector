@@ -140,13 +140,20 @@ form.addEventListener("submit", async (event) => {
         }
 
         const prediction = await response.json();
-        resultImage.src = prediction.fileout;
-        resultImage.style.display = "block";
-        previewPanel.classList.remove("hidden");
-        detectionsPanel.classList.remove("hidden");
-        resultTitle.classList.remove("hidden");
-        detectionsTitle.classList.remove("hidden");
         statusMessage.textContent = prediction.message;
+
+        if (prediction.fileout) {
+            resultImage.src = prediction.fileout;
+            resultImage.style.display = "block";
+            previewPanel.classList.remove("hidden");
+            resultTitle.classList.remove("hidden");
+        }
+
+        if (prediction.detections.length) {
+            detectionsPanel.classList.remove("hidden");
+            detectionsTitle.classList.remove("hidden");
+        }
+
         renderDetections(prediction.detections);
     } catch (error) {
         console.error(error);

@@ -9,10 +9,13 @@ from uuid import uuid4
 
 import argparse
 import cv2
+import numpy as np
 import uvicorn
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from PIL import Image
+from PIL.Image import Image as PILImage
 from pydantic import BaseModel, ConfigDict, Field
 from ultralytics import YOLO
 
@@ -114,7 +117,7 @@ class PredictionResponse(BaseModel):
     filename: str
     detections: list[Detection]
     message: str
-    fileout: str = Field(serialization_alias="fileout")
+    fileout: str | None = Field(serialization_alias="fileout")
 
 
 def save_uploaded_file(file: UploadFile) -> Path:
@@ -123,15 +126,49 @@ def save_uploaded_file(file: UploadFile) -> Path:
         shutil.copyfileobj(file.file, buffer)
     return input_path
 
-def run_prediction(app: FastAPI, input_path: Path, confidence: float) -> Any:
+def run_prediction(app: FastAPI, input_path: Path, confidence: float) -> Any | None:
     parameters = app.state.parameters
-    
-    return app.state.model.predict(
+
+    # Cargar un modelo YOLO estándar
+    model_estandar = YOLO('yolov8n.pt')
+    detector_model = cast(Any, model_estandar)
+    segmentation_model = app.state.model
+
+    # Detección en la imagen original
+    # Clases de vehículos de COCO: 2 (car), 5 (bus), 7 (truck)
+    results_vehiculo = detector_model.predict(
         source=str(input_path),
+        classes=[2, 5, 7],
+        conf=0.5,
+        device='cpu'
+    )
+
+    if len(results_vehiculo[0].boxes) == 0:
+        logger.warning("No se detectó ningún vehículo. No se ejecuta el modelo de segmentación.")
+        return None
+
+    # Calcular el área de todas las cajas detectadas
+    boxes = cast(np.ndarray[Any, Any], results_vehiculo[0].boxes.xyxy.cpu().numpy())
+    areas = cast(list[float], ((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])).tolist())
+
+    #Obtener área más grande
+    idx_max_area = max(range(len(areas)), key=areas.__getitem__)
+    box = boxes[idx_max_area].astype(int)
+
+    #Recorte
+    img_orig = cast(PILImage, Image.open(input_path))
+    img_crop = img_orig.crop((box[0], box[1], box[2], box[3]))
+
+    logger.info("Recortando el vehículo más grande.")
+
+    return segmentation_model.predict(
+        source=img_crop,
         imgsz=parameters["imgsz"],
         conf=confidence,
         device="cpu",
     )
+    
+
 
 
 def build_mask_response(results: Any) -> list[list[MaskPoint]]:
@@ -202,11 +239,20 @@ async def predict(
         start_time = perf_counter()
         input_path = save_uploaded_file(file)
         results = run_prediction(app, input_path, confidence)
+        elapsed_time = perf_counter() - start_time
+
+        if results is None:
+            return PredictionResponse(
+                filename=str(file.filename),
+                detections=[],
+                message=f"No vehicle detected. Segmentation model was not executed. Completed in {elapsed_time:.2f}s",
+                fileout=None,
+            )
+
         detections = build_detection_response(app, results)
         plotted = results[0].plot()
         output_path = TEMP_FOLDER / f"pred_{uuid4().hex}_{file.filename}"
         cv2.imwrite(str(output_path), plotted)
-        elapsed_time = perf_counter() - start_time
         logger.info(f"Prediction completed in {elapsed_time:.2f}s. Detections: {len(detections)}")
         logger.info(f"Prediction image saved at: {output_path}")
 

@@ -15,7 +15,7 @@
             </div>
             <div class="help-grid">
                 <p><strong>How to use:</strong>
-                </br>Select your car image and press Predict. The model will analyze the image and display the detected parts.</p>
+                </br>Select your car image and the confidence threshold and press Predict. The model will analyze the image and display the detected parts.</p>
                 <p><strong>Results:</strong>
                 </br>Image of the car with bounding boxes and segmentation masks and a results table are displayed. Confidence indicates certainty, box is the detected area, and mask is the segmentation outline.</p>
             </div>
@@ -27,7 +27,7 @@
                     <input type="file" id="file-input" accept="image/*" required>
                     <span id="file-name" class="file-name">No file selected</span>
                     <label class="confidence-field" for="confidence-input">
-                        Confidence (%)
+                        Confidence Threshold (%)
                         <input type="number" id="confidence-input" min="0" max="100" step="1" value="20" required>
                     </label>
                     <button type="submit">Predict</button>
