@@ -19,3 +19,5 @@ temp/
 
 venv/
 .env
+
+.coverage

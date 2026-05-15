@@ -1,4 +1,16 @@
+
 # Car Parts Detector
+![Python](https://img.shields.io/badge/python-3.10-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-green)
+![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-orange)
+![Docker](https://img.shields.io/badge/docker-enabled-blue)
+![Tests](https://img.shields.io/github/actions/workflow/status/Deliius/car-parts-detector/tests.yml)
+
+## Online demo
+
+https://deliiius-car-parts-detector.hf.space
+
+<img src="docs/web-screenshot.png" width="900">
 
 Aplicación de detección y segmentación de piezas de coche usando YOLOv8. El proyecto incluye entrenamiento, validación básica del dataset, una API con FastAPI y una interfaz web para subir imágenes, ajustar el umbral de confianza y visualizar resultados.
 
@@ -18,28 +30,43 @@ Aplicación de detección y segmentación de piezas de coche usando YOLOv8. El p
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       ├── docker.yml
+│       └── tests.yml
 ├── config/
 │   ├── general.yaml
 │   ├── inference.yaml
 │   └── train.yaml
 ├── models/
-│   └── previous_best_run/
-│       └── weights/best.pt
+│   ├── previous_best_run/
+│   │   └── weights/
+│   │       └── best.pt
+│   └── yolov8n.pt
+├── notebooks/
 ├── src/
+│   ├── annotations.py
 │   ├── api_inference.py
+│   ├── logging_config.py
 │   ├── main.py
 │   ├── preprocessing.py
+│   ├── register_previous_run.py
 │   ├── train.py
+│   ├── tracking.py
 │   └── utils.py
 ├── tests/
+│   ├── test_api.py
+│   ├── test_data.py
+│   └── test_utils.py
 ├── web/
 │   ├── static/
 │   │   ├── css/styles.css
 │   │   └── js/main.js
 │   └── templates/index.html
 ├── Dockerfile
-├── requirements.txt
-└── pytest.ini
+├── README.md
+├── pytest.ini
+└── requirements.txt
 ```
 
 ## Requisitos
@@ -105,6 +132,11 @@ El modelo cargado será:
 models/previous_best_run/weights/best.pt
 ```
 
+## Pipeline de inferencia
+
+<img src="docs/pipeline.jpg" width="900">
+
+
 ## Flujo de inferencia
 
 La inferencia se realiza en dos pasos:
@@ -125,9 +157,15 @@ La inferencia se realiza en dos pasos:
 models/previous_best_run/weights/best.pt
 ```
 
-Este enfoque evita ejecutar la segmentación de piezas sobre toda la imagen cuando primero se puede aislar el vehículo principal.
+Este enfoque evita ejecutar la segmentación de piezas sobre toda la imagen cuando primero se puede aislar el vehículo principal y reduciendo falsos positivos del modelo de segmentación.
 
 Si no se detecta ningún vehículo en la primera etapa, el segundo modelo no se ejecuta. En ese caso la API devuelve una respuesta sin detecciones ni imagen anotada.
+
+## Ejemplo de predicción
+
+<p align="center">
+  <img src="docs/prediction.jpg" width="900">
+</p>
 
 ## API
 
@@ -260,15 +298,7 @@ Durante el flujo de entrenamiento se registran:
 - Imágenes generadas durante entrenamiento y validación.
 - Mejor checkpoint como artefacto `best-yolo-model`.
 
-Los artefactos se registran desde [src/tracking.py](src/tracking.py):
-
-- `log_split_artifact`
-- `log_results_artifact`
-- `log_results_metrics`
-- `log_training_images`
-- `log_model_artifact`
-
-También existe el script [src/register_previous_run.py](src/register_previous_run.py), pensado para registrar en W&B el mejor modelo ya entrenado en `models/previous_best_run`.
+También existe el script [src/register_previous_run.py](src/register_previous_run.py), pensado para registrar en W&B un modelo ya entrenado en `models/previous_best_run`.
 
 Ejecutarlo:
 
@@ -283,6 +313,7 @@ Ese script registra:
 - Métricas históricas del entrenamiento.
 - Imágenes de entrenamiento y validación guardadas en la carpeta de la run previa.
 
+
 ## Tests
 
 Ejecutar tests:
@@ -291,7 +322,27 @@ Ejecutar tests:
 pytest
 ```
 
-Los tests validan aspectos básicos del dataset, imágenes, máscaras y preprocesamiento.
+Este proyecto incluye varios tipos de pruebas:
+
+- `tests/test_data.py`
+  - validación del dataset de `data/CarParts`
+  - comprobaciones de existencia de archivos, columnas, valores nulos y correspondencia entre imágenes y máscaras
+  - verificación de formatos y tipos (`uint8`, dimensiones coincidentes)
+
+- `tests/test_api.py`
+  - pruebas de la API de `src/api_inference.py`
+  - comprobación de que `GET /` devuelve HTML
+  - pruebas de `/predict` usando `TestClient` y `monkeypatch` para simular el comportamiento del modelo
+  - casos de respuesta cuando no hay detección y cuando hay detecciones válidas
+
+- `tests/test_utils.py`
+  - pruebas de utilidades y funciones auxiliares del proyecto
+
+Estas pruebas ayudan a garantizar que:
+
+- el dataset está disponible y saneado antes del entrenamiento
+- los datos que usa el modelo cumplen las expectativas de formato
+- la API responde correctamente y no depende de cargar modelos reales en cada test
 
 ## Notas
 
