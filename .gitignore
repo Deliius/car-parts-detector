@@ -21,3 +21,6 @@ venv/
 .env
 
 .coverage
+
+car-parts-detector/
+car-parts-detector
