@@ -1,6 +1,7 @@
 
 # Car Parts Detector
 Vehicle parts detection and segmentation using YOLOv8, FastAPI and Docker.
+
 ![Python](https://img.shields.io/badge/python-3.10-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-green)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-orange)
@@ -9,7 +10,7 @@ Vehicle parts detection and segmentation using YOLOv8, FastAPI and Docker.
 
 ## Online demo
 
-[Hugging Face Demo] (https://deliiius-car-parts-detector.hf.space)
+[Hugging Face Demo](https://deliiius-car-parts-detector.hf.space)
 <p align="center">
   <img src="docs/web-screenshot.png" width="900">
 </p>
