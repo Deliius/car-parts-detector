@@ -73,7 +73,7 @@ function renderDetections(detections) {
             <tr>
                 <th>#</th>
                 <th>Class<select id="class-filter" class="table-control"><option value="">All classes</option>${classes.map((className) => `<option value="${className}">${className}</option>`).join("")}</select></th>
-                <th>Confidence<button id="confidence-sort" class="table-sort" type="button">Sort desc</button></th>
+                <th>Confidence<button id="confidence-sort" class="table-sort" type="button" aria-label="Sort confidence descending" title="Sort confidence descending">↓</button></th>
                 <th>Box</th>
                 <th>Mask</th>
             </tr>
@@ -100,7 +100,9 @@ function renderDetections(detections) {
     });
     table.querySelector("#confidence-sort").addEventListener("click", (event) => {
         sortDirection = sortDirection === "desc" ? "asc" : "desc";
-        event.target.textContent = sortDirection === "desc" ? "Sort desc" : "Sort asc";
+        event.target.textContent = sortDirection === "desc" ? "↓" : "↑";
+        event.target.setAttribute("aria-label", sortDirection === "desc" ? "Sort confidence descending" : "Sort confidence ascending");
+        event.target.setAttribute("title", sortDirection === "desc" ? "Sort confidence descending" : "Sort confidence ascending");
         updateTable();
     });
     updateTable();

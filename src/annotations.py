@@ -141,7 +141,7 @@ class YoloAnnotationConverter:
         # Si ya existe una anotación por cada fila del DataFrame,
         # evitamos recalcular todo.
         if len(existing_files) == len(df):
-            print(f"Anotaciones YOLO ya existentes en: {output}")
+            logger.info(f"YOLO annotations already exist in: {output}")
             return
 
         rows = cast(list[dict[str, Any]], df.to_dict("records"))

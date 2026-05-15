@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import Any
+import logging
 
 import pandas as pd
 import wandb
+
+logger = logging.getLogger(__name__)
 
 
 def log_split_artifact(data_path: Path) -> None:
@@ -23,7 +26,7 @@ def log_split_artifact(data_path: Path) -> None:
 def log_results_artifact(results_path: Path) -> None:
 
     if not results_path.exists():
-        print(f"No existe results.csv en: {results_path}")
+        logger.warning(f"results.csv does not exist at: {results_path}")
         return
 
     artifact = wandb.Artifact(
@@ -39,7 +42,7 @@ def log_results_artifact(results_path: Path) -> None:
 
 def log_model_artifact(model_path: Path) -> None:
     if not model_path.exists():
-        print(f"Model file not found: {model_path}")
+        logger.warning(f"Model file not found: {model_path}")
         return
 
     artifact = wandb.Artifact(
@@ -68,7 +71,7 @@ def log_training_images(run_path: Path) -> None:
 def log_results_metrics(results_path: Path) -> None:
 
     if not results_path.exists():
-        print(f"Results file not found: {results_path}")
+        logger.warning(f"Results file not found: {results_path}")
         return
     
     df = pd.read_csv(results_path)

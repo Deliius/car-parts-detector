@@ -1,3 +1,4 @@
 model_path : "models"
+crop_model_path : "yolov8n.pt"
 best_model_path : "previous_best_run"
 imgsz: 640

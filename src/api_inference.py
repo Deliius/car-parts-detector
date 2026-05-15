@@ -36,13 +36,15 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-#Paths 
+# Rutas base del proyecto
 PROJECT_ROOT = get_project_folder()
 TEMP_FOLDER = PROJECT_ROOT / "temp"
 TEMP_FOLDER.mkdir(exist_ok=True)
 
 
 def load_inference_parameters(config_filename: str) -> dict[str, Any]:
+    # En local se utiliza el YAML; en despliegues se permite configurar
+    # la inferencia con variables de entorno si el fichero no existe.
     config_file = PROJECT_ROOT / "config" / config_filename
 
     if config_file.exists():
@@ -55,6 +57,7 @@ def load_inference_parameters(config_filename: str) -> dict[str, Any]:
 
     return {
         "model_path": os.getenv("MODEL_PATH", "models"),
+        "crop_model_path": os.getenv("CROP_MODEL_PATH", "yolov8n.pt"),
         "best_model_path": os.getenv("BEST_MODEL_PATH", "previous_best_run"),
         "imgsz": int(os.getenv("IMGSZ", "640")),
     }
@@ -68,9 +71,13 @@ async def lifespan(app: FastAPI):
     parameters = load_inference_parameters(args.config)
     app.state.parameters = parameters
 
-    # Ruta al modelo
+    # Rutas de los dos modelos usados durante inferencia:
+    # - modelo entrenado del proyecto para segmentar piezas
+    # - modelo previo para detectar y recortar el vehículo principal
     model_path = Path(parameters["model_path"])
     best_model_path = Path(parameters["best_model_path"])
+    crop_model_path = Path(parameters["crop_model_path"])
+
     MODEL_PATH = (
         PROJECT_ROOT
         / model_path
@@ -79,9 +86,20 @@ async def lifespan(app: FastAPI):
         / "best.pt"
     )
 
+    CROP_MODEL_PATH = (
+        PROJECT_ROOT
+        / model_path
+        / crop_model_path
+    )
+
+
     try:
+        # Los modelos se cargan una sola vez al arrancar la API.
+        # Así evitamos inicializarlos de nuevo en cada petición /predict.
         logger.info(f"Loading YOLO model from: {MODEL_PATH}")
         app.state.model = YOLO(MODEL_PATH)
+        logger.info(f"Loading vehicle detector model: {crop_model_path}")
+        app.state.vehicle_model = YOLO(CROP_MODEL_PATH)
         logger.info("YOLO model loaded successfully")
 
         yield
@@ -105,12 +123,14 @@ templates = Jinja2Templates(
     directory=str(PROJECT_ROOT / "web" / "templates")
 )
 
+# Archivos del frontend: CSS y JavaScript.
 app.mount(
     "/static",
     StaticFiles(directory=str(PROJECT_ROOT / "web" / "static")),
     name="static"
 )
 
+# Imágenes generadas 
 app.mount(
     "/outputs",
     StaticFiles(directory=str(TEMP_FOLDER)),
@@ -118,6 +138,7 @@ app.mount(
 )
 
 class MaskPoint(BaseModel):
+    # Punto individual de una máscara de segmentación.
     x: float
     y: float
 
@@ -125,6 +146,7 @@ class MaskPoint(BaseModel):
 class Detection(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    # Detección: clase, confianza, caja y máscara (opcional).
     class_name: str
     confidence: float
     bbox: list[float]
@@ -133,6 +155,7 @@ class Detection(BaseModel):
 class PredictionResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    # fileout None cuando no se detecta vehículo.
     filename: str
     detections: list[Detection]
     message: str
@@ -140,7 +163,10 @@ class PredictionResponse(BaseModel):
 
 
 def save_uploaded_file(file: UploadFile) -> Path:
-    input_path = TEMP_FOLDER / str(file.filename)
+    # Path(...).name evita que el nombre recibido contenga rutas del cliente.
+    # uuid4 evita colisiones si se sube la misma imagen varias veces.
+    filename = Path(str(file.filename)).name
+    input_path = TEMP_FOLDER / f"upload_{uuid4().hex}_{filename}"
     with open(input_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     return input_path
@@ -148,13 +174,11 @@ def save_uploaded_file(file: UploadFile) -> Path:
 def run_prediction(app: FastAPI, input_path: Path, confidence: float) -> Any | None:
     parameters = app.state.parameters
 
-    # Cargar un modelo YOLO estándar
-    model_estandar = YOLO('yolov8n.pt')
-    detector_model = cast(Any, model_estandar)
+    detector_model = app.state.vehicle_model
     segmentation_model = app.state.model
 
-    # Detección en la imagen original
-    # Clases de vehículos de COCO: 2 (car), 5 (bus), 7 (truck)
+    # Primera etapa: detectar vehículos en la imagen original.
+    # Clases de COCO: 2 (car), 5 (bus), 7 (truck).
     results_vehiculo = detector_model.predict(
         source=str(input_path),
         classes=[2, 5, 7],
@@ -163,23 +187,35 @@ def run_prediction(app: FastAPI, input_path: Path, confidence: float) -> Any | N
     )
 
     if len(results_vehiculo[0].boxes) == 0:
-        logger.warning("No se detectó ningún vehículo. No se ejecuta el modelo de segmentación.")
+        # Si no hay vehículo, no se ejecuta el modelo de segmentación.
+        logger.warning("No vehicle detected. Segmentation model was not executed.")
         return None
 
-    # Calcular el área de todas las cajas detectadas
+    # Si hay varios vehículos, se recorta el de mayor área.
     boxes = cast(np.ndarray[Any, Any], results_vehiculo[0].boxes.xyxy.cpu().numpy())
     areas = cast(list[float], ((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])).tolist())
 
-    #Obtener área más grande
     idx_max_area = max(range(len(areas)), key=areas.__getitem__)
     box = boxes[idx_max_area].astype(int)
 
-    #Recorte
+    # Las coordenadas de YOLO se ajustan a los límites reales de la imagen.
     img_orig = cast(PILImage, Image.open(input_path))
-    img_crop = img_orig.crop((box[0], box[1], box[2], box[3]))
+    width, height = img_orig.size
+    x1 = max(0, min(int(box[0]), width))
+    y1 = max(0, min(int(box[1]), height))
+    x2 = max(0, min(int(box[2]), width))
+    y2 = max(0, min(int(box[3]), height))
 
-    logger.info("Recortando el vehículo más grande.")
+    if x2 <= x1 or y2 <= y1:
+        # Evita enviar un recorte vacío o inválido al segundo modelo.
+        logger.warning("Vehicle crop is invalid. Segmentation model was not executed.")
+        return None
 
+    img_crop = img_orig.crop((x1, y1, x2, y2))
+
+    logger.info("Cropping the largest detected vehicle.")
+
+    # Segunda etapa: segmentar piezas sobre el recorte del vehículo.
     return segmentation_model.predict(
         source=img_crop,
         imgsz=parameters["imgsz"],
@@ -191,6 +227,7 @@ def run_prediction(app: FastAPI, input_path: Path, confidence: float) -> Any | N
 
 
 def build_mask_response(results: Any) -> list[list[MaskPoint]]:
+    # Convierte las máscaras poligonales de Ultralytics a objetos JSON simples.
     result = results[0]
     result_masks = getattr(result, "masks", None)
 
@@ -211,6 +248,7 @@ def build_mask_response(results: Any) -> list[list[MaskPoint]]:
 
 
 def build_detection_response(app: FastAPI, results: Any) -> list[Detection]:
+    # Une cajas, clases, confianza y máscara en el formato de respuesta.
 
     detections: list[Detection] = []
     boxes = results[0].boxes
@@ -248,13 +286,15 @@ async def home(request: Request):
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(
     file: UploadFile = File(...),
-    confidence: float = Form(0.2),
+    confidence: float = Form(0.2, ge=0.0, le=1.0),
 ) -> PredictionResponse:
 
     logger.info(f"Received file for JSON prediction: {file.filename}")
 
     try:
 
+        # Se mide el tiempo completo de la petición de inferencia.
+        filename = Path(str(file.filename)).name
         start_time = perf_counter()
         input_path = save_uploaded_file(file)
         results = run_prediction(app, input_path, confidence)
@@ -262,7 +302,7 @@ async def predict(
 
         if results is None:
             return PredictionResponse(
-                filename=str(file.filename),
+                filename=filename,
                 detections=[],
                 message=f"No vehicle detected. Segmentation model was not executed. Completed in {elapsed_time:.2f}s",
                 fileout=None,
@@ -270,13 +310,15 @@ async def predict(
 
         detections = build_detection_response(app, results)
         plotted = results[0].plot()
-        output_path = TEMP_FOLDER / f"pred_{uuid4().hex}_{file.filename}"
+        # Nombre único para evitar caché del navegador y colisiones.
+        output_path = TEMP_FOLDER / f"pred_{uuid4().hex}_{filename}"
         cv2.imwrite(str(output_path), plotted)
+        elapsed_time = perf_counter() - start_time
         logger.info(f"Prediction completed in {elapsed_time:.2f}s. Detections: {len(detections)}")
         logger.info(f"Prediction image saved at: {output_path}")
 
         return PredictionResponse(
-            filename=str(file.filename),
+            filename=filename,
             detections=detections,
             message=f"Prediction completed successfully in {elapsed_time:.2f}s",
             fileout=f"/outputs/{quote(output_path.name)}"

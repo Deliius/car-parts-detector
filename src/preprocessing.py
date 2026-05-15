@@ -61,7 +61,7 @@ class CarPartsDatasetAnalyzer:
         """
 
         if self.cache_file.exists():
-            self.logger.info(f"Dataset cargado desde cache: {self.cache_file}")
+            self.logger.info(f"Dataset loaded from cache: {self.cache_file}")
             return pd.read_csv(self.cache_file)
 
         # Si no existe cache, analizamos el dataset.
@@ -71,7 +71,7 @@ class CarPartsDatasetAnalyzer:
         df.to_csv(self.cache_file, index=False)
 
         
-        self.logger.info(f"Dataset analizado y guardado en: {self.cache_file}")
+        self.logger.info(f"Dataset analyzed and saved to: {self.cache_file}")
 
         return df
 
@@ -154,7 +154,7 @@ def split_train_val_test(
         and (data_path_path / "val.txt").exists()
         and (data_path_path / "test.txt").exists()
     ):
-        logger.info("Split ya existente.")
+        logger.info("Dataset split already exists.")
         return
 
     # Recuperamos todas las imágenes.
