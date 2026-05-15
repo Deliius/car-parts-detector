@@ -9,17 +9,46 @@
 </head>
 <body>
     <div class="container">
-        <h1>Car Parts Detection</h1>
-        <p>Upload an image and run YOLOv8 segmentation inference.</p>
-        <form id="upload-form">
-            <input type="file" id="file-input" accept="image/*" required>
-            <br>
-            <button type="submit">Predict</button>
-        </form>
-        <div class="preview">
-            <img id="result-image" style="display:none;">
-        </div>
-        <div id="detections"></div>
+        <header class="page-header">
+            <div>
+                <h1>Car Parts Detection</h1>
+            </div>
+            <div class="help-grid">
+                <p><strong>How to use:</strong>
+                </br>Select your car image and press Predict. The model will analyze the image and display the detected parts.</p>
+                <p><strong>Results:</strong>
+                </br>Image of the car with bounding boxes and segmentation masks and a results table are displayed. Confidence indicates certainty, box is the detected area, and mask is the segmentation outline.</p>
+            </div>
+        </header>
+        <main class="workspace">
+            <section class="panel upload-panel">
+                <form id="upload-form">
+                    <label class="file-label" for="file-input">Choose image</label>
+                    <input type="file" id="file-input" accept="image/*" required>
+                    <span id="file-name" class="file-name">No file selected</span>
+                    <label class="confidence-field" for="confidence-input">
+                        Confidence (%)
+                        <input type="number" id="confidence-input" min="0" max="100" step="1" value="20" required>
+                    </label>
+                    <button type="submit">Predict</button>
+                </form>
+                <p id="status" class="status"></p>
+            </section>
+            <section id="preview-panel" class="panel preview-panel hidden">
+                <h2 id="result-title" class="hidden">Result image</h2>
+                <div class="preview">
+                    <img id="result-image" style="display:none;" alt="Prediction result">
+                </div>
+            </section>
+            <section id="detections-panel" class="panel detections-panel hidden">
+                <h2 id="detections-title" class="hidden">Detections</h2>
+                <div id="detections" class="table-wrap"></div>
+            </section>
+        </main>
+        <footer class="site-footer">
+            <span>Repository: <a href="https://github.com/Deliius/car-parts-detector" target="_blank" rel="noreferrer">Deliius/car-parts-detector</a></span>
+            <span>GitHub: <a href="https://github.com/Deliius" target="_blank" rel="noreferrer">@Deliius</a></span>
+        </footer>
     </div>
 </body>
 </html>

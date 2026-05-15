@@ -1,4 +1,3 @@
 model_path : "models"
 best_model_path : "previous_best_run"
 imgsz: 640
-conf: 0.25
