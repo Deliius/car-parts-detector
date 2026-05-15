@@ -1,5 +1,6 @@
 
 # Car Parts Detector
+Vehicle parts detection and segmentation using YOLOv8, FastAPI and Docker.
 ![Python](https://img.shields.io/badge/python-3.10-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-green)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-orange)
@@ -8,9 +9,10 @@
 
 ## Online demo
 
-https://deliiius-car-parts-detector.hf.space
-
-<img src="docs/web-screenshot.png" width="900">
+[Hugging Face Demo] (https://deliiius-car-parts-detector.hf.space)
+<p align="center">
+  <img src="docs/web-screenshot.png" width="900">
+</p>
 
 Aplicación de detección y segmentación de piezas de coche usando YOLOv8. El proyecto incluye entrenamiento, validación básica del dataset, una API con FastAPI y una interfaz web para subir imágenes, ajustar el umbral de confianza y visualizar resultados.
 
@@ -131,11 +133,12 @@ El modelo cargado será:
 ```text
 models/previous_best_run/weights/best.pt
 ```
+En entornos cloud como Hugging Face Spaces, la API puede cargar la configuración mediante variables de entorno si `config/inference.yaml` no está disponible.
 
 ## Pipeline de inferencia
-
-<img src="docs/pipeline.jpg" width="900">
-
+<p align="center">
+  <img src="docs/pipeline.jpg" width="900">
+</p>
 
 ## Flujo de inferencia
 
@@ -157,7 +160,7 @@ La inferencia se realiza en dos pasos:
 models/previous_best_run/weights/best.pt
 ```
 
-Este enfoque evita ejecutar la segmentación de piezas sobre toda la imagen cuando primero se puede aislar el vehículo principal y reduciendo falsos positivos del modelo de segmentación.
+Este enfoque permite aislar primero el vehículo principal y reducir falsos positivos del modelo de segmentación.
 
 Si no se detecta ningún vehículo en la primera etapa, el segundo modelo no se ejecuta. En ese caso la API devuelve una respuesta sin detecciones ni imagen anotada.
 
@@ -274,6 +277,8 @@ La configuración principal está en:
 El dataset se descarga automáticamente con KaggleHub si no existe en `data/CarParts`.
 
 ## Tracking con Weights & Biases
+
+[W&B Experiment Report](https://wandb.ai/delia-arjona-universidad-polit-cnica-de-madrid/MLOps/reports/Car-Parts-Detector-MLOps-Project--VmlldzoxNjg5MTMwNw?accessToken=nrjptqnzjuql3javoqatzf3pimoj3o08ec552m51gt1zpfjlqr89hh3y8zys3yjv)
 
 El proyecto usa Weights & Biases para registrar experimentos, métricas y artefactos del entrenamiento.
 
