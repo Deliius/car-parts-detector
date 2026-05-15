@@ -10,14 +10,14 @@ from tqdm import tqdm
 import logging
 
 class YoloAnnotationConverter:
-    """
+    '''
     Convierte máscaras de segmentación en anotaciones YOLO segmentation.
 
     Cada máscara contiene IDs de clase por píxel. Esta clase extrae los contornos
     de cada pieza del coche y los guarda en formato YOLO:
     
     class_id x1 y1 x2 y2 x3 y3 ...
-    """
+    '''
 
     def __init__(
         self,
@@ -36,9 +36,9 @@ class YoloAnnotationConverter:
         output: Path,
         min_area: int
     ) -> None:
-        """
+        '''
         Procesa una única máscara y genera su fichero .txt de anotación YOLO.
-        """
+        '''
 
         # Recuperamos la ruta de la máscara asociada a la fila actual.
         mask_path = self.masks_path / str(row["mask_name"])
@@ -126,9 +126,9 @@ class YoloAnnotationConverter:
         output_path: str | Path,
         min_area: int = 20
     ) -> None:
-        """
+        '''
         Genera las anotaciones YOLO para todas las máscaras del dataset.
-        """
+        '''
 
         logger = logging.getLogger(__name__)
         logger.info("Generating YOLO annotations")

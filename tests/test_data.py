@@ -11,9 +11,7 @@ from src.preprocessing import CarPartsDatasetAnalyzer
 from src.utils import download_data, load_config
 
 
-# =========================================================
 # Fixtures
-# =========================================================
 
 # Carga la configuración general del proyecto desde YAML.
 # Se ejecuta una sola vez por sesión de tests.
@@ -56,9 +54,8 @@ def cache_file(parameters: dict[str, Any]) -> str:
     return str(parameters["cache_file"])
 
 
-# =========================================================
+
 # Dataset Validation Tests
-# =========================================================
 
 # Comprueba que el dataset existe y no está vacío.
 def test_dataset_not_empty(data_path: Path) -> None:
@@ -148,9 +145,7 @@ def test_images_and_masks_have_matching_names(
     assert image_names == mask_names
 
 
-# =========================================================
 # Shape & Data Type Tests
-# =========================================================
 
 # Comprueba que una imagen y su máscara correspondiente
 # tienen las mismas dimensiones espaciales.
@@ -195,9 +190,7 @@ def test_image_and_mask_dtype(
     assert mask.dtype == np.uint8
 
 
-# =========================================================
 # Preprocessing Tests
-# =========================================================
 
 # Comprueba que el analizador:
 # - genera correctamente el DataFrame

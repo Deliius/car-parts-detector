@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    '''Registra el mejor checkpoint obtenido en la práctica anterior como un nuevo run en W&B.'''
 
     # Configuración general del proyecto
     parameters = load_config("general.yaml")

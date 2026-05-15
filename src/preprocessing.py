@@ -12,14 +12,14 @@ import logging
 
 
 class CarPartsDatasetAnalyzer:
-    """
+    '''
     Clase encargada de analizar el dataset de segmentación.
 
     A partir de las máscaras del dataset:
     - detecta qué piezas aparecen en cada imagen
     - genera un DataFrame resumen
     - almacena el resultado en cache para evitar recalcularlo
-    """
+    '''
 
     def __init__(
         self,
@@ -42,12 +42,6 @@ class CarPartsDatasetAnalyzer:
         self.cache_file = self.dataset_path / cache_file
 
         # Diccionario que asigna un ID numérico a cada clase.
-        # Ejemplo:
-        # {
-        #     "hood": 0,
-        #     "wheel": 1,
-        #     ...
-        # }
         self.class_to_id: dict[str, int] = {
             str(row["class"]): idx
             for idx, (_, row) in enumerate(self.classes.iterrows())
@@ -55,10 +49,10 @@ class CarPartsDatasetAnalyzer:
         self.logger = logging.getLogger(__name__)
 
     def load_or_analyze(self) -> DataFrame:
-        """
+        '''
         Carga el DataFrame cacheado si existe.
         En caso contrario, analiza el dataset y genera el cache.
-        """
+        '''
 
         if self.cache_file.exists():
             self.logger.info(f"Dataset loaded from cache: {self.cache_file}")
@@ -69,20 +63,19 @@ class CarPartsDatasetAnalyzer:
 
         # Guardamos el resultado para futuras ejecuciones.
         df.to_csv(self.cache_file, index=False)
-
         
         self.logger.info(f"Dataset analyzed and saved to: {self.cache_file}")
 
         return df
 
     def analyze_dataset(self) -> DataFrame:
-        """
+        '''
         Analiza todas las máscaras del dataset.
 
         Para cada imagen:
         - comprueba qué piezas aparecen
         - genera una fila binaria indicando presencia/ausencia
-        """
+        '''
 
         # Lista donde se almacenarán las filas del DataFrame.
         data: list[dict[str, Any]] = []
@@ -90,7 +83,7 @@ class CarPartsDatasetAnalyzer:
         # Recuperamos todas las máscaras PNG.
         mask_paths = list(self.masks_path.glob("*.png"))
 
-        for mask_path in tqdm(mask_paths, desc="Analizando máscaras"):
+        for mask_path in tqdm(mask_paths, desc="Analyzing masks"):
 
             # Leemos la máscara en escala de grises.
             mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
@@ -130,7 +123,7 @@ def split_train_val_test(
     val_perc: float = 0.2,
     test_perc: float = 0.1
 ) -> None:
-    """
+    '''
     Divide el dataset en train, validation y test.
 
     Genera tres ficheros:
@@ -139,7 +132,8 @@ def split_train_val_test(
     - test.txt
 
     Cada fichero contiene las rutas absolutas de las imágenes.
-    """
+    Si los ficheros ya existen, no se generan de nuevo.
+    '''
 
     logger = logging.getLogger(__name__)
     logger.info("Generating train/validation/test splits")
@@ -184,9 +178,9 @@ def split_train_val_test(
         img_list: list[Path],
         filename: str
     ) -> None:
-        """
+        '''
         Guarda una lista de imágenes en un fichero .txt
-        """
+        '''
 
         with open(data_path_path / filename, "w") as f:
             for img in img_list:
@@ -202,14 +196,14 @@ def generate_yolo_yaml(
     path: str,
     file_name: str
 ) -> None:
-    """
+    '''
     Genera el fichero YAML requerido por YOLO.
 
     Este fichero define:
     - rutas de train/val/test
     - nombres de clases
     - estructura del dataset
-    """
+    '''
 
     yaml_path = Path(f"{path}/{file_name}")
 

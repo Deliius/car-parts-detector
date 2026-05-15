@@ -9,14 +9,14 @@ def train_model(
     model_path: Path,
     config: dict[str, Any]
 ) -> None:
-    """
+    '''
     Entrena un modelo YOLOv8 de segmentación.
 
     El entrenamiento utiliza:
     - un modelo preentrenado YOLOv8
     - augmentations
     - early stopping mediante patience
-    """
+    '''
 
     # Cargamos la configuración
     training = config["training"]
@@ -37,60 +37,34 @@ def train_model(
         # Lanzamos el entrenamiento.
         model.train(  # pyright: ignore[reportUnknownMemberType]
 
-            # =================================================
-            # Dataset
-            # =================================================
-
             data=str(base_path / "car_parts.yaml"),
-
-            # =================================================
-            # Entrenamiento
-            # =================================================
-
             epochs=training["epochs"],
             patience=training["patience"],
             imgsz=training["imgsz"],
             batch=training["batch_size"],
-
             workers=training["workers"],
             amp=training["amp"],
             device=training["device"],
-
-            # =================================================
-            # Output
-            # =================================================
-
             project=str(model_path),
             name=training["experiment_name"],
             save=True,
 
-            # =================================================
             # Augmentations avanzadas
-            # =================================================
-
             mosaic=augmentation["mosaic"],
             close_mosaic=augmentation["close_mosaic"],
-
             mixup=augmentation["mixup"],
             copy_paste=augmentation["copy_paste"],
 
-            # =================================================
             # Transformaciones geométricas
-            # =================================================
-
             degrees=augmentation["degrees"],
             translate=augmentation["translate"],
             scale=augmentation["scale"],
             shear=augmentation["shear"],
             perspective=augmentation["perspective"],
-
             fliplr=augmentation["fliplr"],
             flipud=augmentation["flipud"],
 
-            # =================================================
             # Transformaciones de color
-            # =================================================
-
             hsv_h=augmentation["hsv_h"],
             hsv_s=augmentation["hsv_s"],
             hsv_v=augmentation["hsv_v"],

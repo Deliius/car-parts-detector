@@ -5,6 +5,7 @@ import wandb
 import logging
 
 from src.annotations import YoloAnnotationConverter
+from src.logging_config import setup_logger
 from src.preprocessing import CarPartsDatasetAnalyzer, generate_yolo_yaml, split_train_val_test
 from src.tracking import (
     log_model_artifact,
@@ -15,11 +16,12 @@ from src.tracking import (
 )
 from src.train import train_model
 from src.utils import download_data, load_config, set_seeds
-from src.logging_config import setup_logger
 
 
 def main() -> None:
+    '''Función principal que lanza la ejecución de carga datos, preprocesado, split y entrenamiento.'''
 
+    # Configuración del logger
     setup_logger("DEBUG")
     logger = logging.getLogger(__name__)
 
@@ -31,11 +33,13 @@ def main() -> None:
     # Configuración específica del entrenamiento
     train_config = load_config("train.yaml")
 
+    # Configuración de W&B: parametros generales + entrenamiento
     wandb_config = {
         **parameters,
         **train_config,
     }
 
+    # Inicialización de W&B
     wandb.init(
         project="MLOps",
         name=train_config["training"]["experiment_name"],

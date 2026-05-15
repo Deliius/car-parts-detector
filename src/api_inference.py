@@ -34,7 +34,7 @@ parser.add_argument(
     help="Configuration YAML file"
 )
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 # Rutas base del proyecto
 PROJECT_ROOT = get_project_folder()
@@ -57,7 +57,7 @@ def load_inference_parameters(config_filename: str) -> dict[str, Any]:
 
     return {
         "model_path": os.getenv("MODEL_PATH", "models"),
-        "crop_model_path": os.getenv("CROP_MODEL_PATH", "yolov8n.pt"),
+        "crop_model": os.getenv("CROP_MODEL", "yolov8n.pt"),
         "best_model_path": os.getenv("BEST_MODEL_PATH", "previous_best_run"),
         "imgsz": int(os.getenv("IMGSZ", "640")),
     }
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     # - modelo previo para detectar y recortar el vehículo principal
     model_path = Path(parameters["model_path"])
     best_model_path = Path(parameters["best_model_path"])
-    crop_model_path = Path(parameters["crop_model_path"])
+    crop_model = Path(parameters["crop_model"])
 
     MODEL_PATH = (
         PROJECT_ROOT
@@ -86,10 +86,10 @@ async def lifespan(app: FastAPI):
         / "best.pt"
     )
 
-    CROP_MODEL_PATH = (
+    CROP_MODEL = (
         PROJECT_ROOT
         / model_path
-        / crop_model_path
+        / crop_model
     )
 
 
@@ -98,8 +98,8 @@ async def lifespan(app: FastAPI):
         # Así evitamos inicializarlos de nuevo en cada petición /predict.
         logger.info(f"Loading YOLO model from: {MODEL_PATH}")
         app.state.model = YOLO(MODEL_PATH)
-        logger.info(f"Loading vehicle detector model: {crop_model_path}")
-        app.state.vehicle_model = YOLO(CROP_MODEL_PATH)
+        logger.info(f"Loading vehicle detector model: {crop_model}")
+        app.state.vehicle_model = YOLO(CROP_MODEL)
         logger.info("YOLO model loaded successfully")
 
         yield

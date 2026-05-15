@@ -19,11 +19,14 @@
     --success-bg: #dcfce7;
     --success-text: #166534;
 
-    --warning-bg: #fef3c7;
-    --warning-text: #92400e;
+    --warning-bg: #fee998;
+    --warning-text: #989223;
 
-    --danger-bg: #fee2e2;
-    --danger-text: #991b1b;
+    --danger-bg: #fcd59a;
+    --danger-text: #b67520;
+
+    --critical-bg: #fcbdbd;
+    --critical-text: #932020;
 }
 
 * {
@@ -394,6 +397,11 @@ button:hover {
 .confidence-low {
     color: var(--danger-text);
     background: var(--danger-bg);
+}
+
+.confidence-critical {
+    color: var(--critical-text);
+    background: var(--critical-bg);
 }
 
 .empty-state {
