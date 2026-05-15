@@ -10,6 +10,7 @@ from uuid import uuid4
 import argparse
 import cv2
 import numpy as np
+import os
 import uvicorn
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
@@ -41,12 +42,30 @@ TEMP_FOLDER = PROJECT_ROOT / "temp"
 TEMP_FOLDER.mkdir(exist_ok=True)
 
 
+def load_inference_parameters(config_filename: str) -> dict[str, Any]:
+    config_file = PROJECT_ROOT / "config" / config_filename
+
+    if config_file.exists():
+        return load_config(config_filename)
+
+    logger.warning(
+        f"Configuration file not found: {config_file}. "
+        "Loading inference configuration from environment variables."
+    )
+
+    return {
+        "model_path": os.getenv("MODEL_PATH", "models"),
+        "best_model_path": os.getenv("BEST_MODEL_PATH", "previous_best_run"),
+        "imgsz": int(os.getenv("IMGSZ", "640")),
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
     logger.info(f"Loading configuration: {args.config}")
 
-    parameters = load_config(args.config)
+    parameters = load_inference_parameters(args.config)
     app.state.parameters = parameters
 
     # Ruta al modelo
